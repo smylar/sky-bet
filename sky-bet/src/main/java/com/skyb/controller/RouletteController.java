@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.skyb.controller.exception.RequestException;
 import com.skyb.data.NewBet;
+import com.skyb.data.ThrowingSupplier;
 import com.skyb.entity.RouletteBet;
 import com.skyb.service.RouletteService;
 
@@ -44,7 +45,7 @@ public class RouletteController {
     @PostMapping(value="/placebet")
     @ResponseBody
     public RouletteBet placeBet(final HttpServletRequest request, @RequestBody NewBet bet) {
-        return tryCatch(request, () -> rouletteService.placeBet(bet));
+        return tryCatch(request, () -> rouletteService.placeBet(bet)).get();
     }
     
     
@@ -58,7 +59,7 @@ public class RouletteController {
     @ResponseBody
     public Boolean cancelBet(final HttpServletRequest request, @PathVariable("betId") long betId, @PathVariable("custId") long custId) {
       //obviously would need mechanisms to ensure it is the same user who placed the bet e.g. use oauth
-        return tryCatch(request, () -> rouletteService.cancelBet(betId, custId));
+        return tryCatch(request, () -> rouletteService.cancelBet(betId, custId)).get();
     }
     
     /**
@@ -85,16 +86,28 @@ public class RouletteController {
     @ResponseBody
     public RouletteBet getBet(final HttpServletRequest request, @PathVariable("betId") long betId, @PathVariable("custId") long custId) {
         //obviously would need mechanisms to ensure it is the same user who placed the bet e.g. use oauth
-        return tryCatch(request, () -> rouletteService.getBet(betId, custId));
+        return tryCatch(request, () -> rouletteService.getBet(betId, custId)).get();
     }
     
-    private <R> R tryCatch(HttpServletRequest request, Supplier<R> supplier) {
-        try {
-            return supplier.get();
-        } catch (Exception e) {
-            log.error("Error on {}", request.getServletPath(), e);
-            throw new RequestException(e);
-        }
+//    private <R> R tryCatch(HttpServletRequest request, Supplier<R> supplier) {
+//        try {
+//            return supplier.get();
+//        } catch (Exception e) {
+//            log.error("Error on {}", request.getServletPath(), e);
+//            throw new RequestException(e);
+//        }
+//    }
+    
+    private <R> Supplier<R> tryCatch(HttpServletRequest request, ThrowingSupplier<R, Exception> supplier) {
+        
+        return () -> {
+            try {
+                return supplier.get();
+            } catch (Exception e) {
+                log.error("Error on {}", request.getServletPath(), e);
+                throw new RequestException(e);
+            }
+        };
     }
 
 }

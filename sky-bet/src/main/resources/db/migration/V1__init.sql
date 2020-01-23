@@ -1,4 +1,3 @@
-CREATE SCHEMA roulette;
 
 CREATE TABLE roulette.bets (
   id bigint auto_increment,
